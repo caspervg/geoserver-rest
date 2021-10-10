@@ -829,6 +829,7 @@ class Geoserver:
         geom_name: str = "geom",
         geom_type: str = "Geometry",
         workspace: Optional[str] = None,
+        srid: Optional[int] = None
     ):
         """
 
@@ -841,10 +842,13 @@ class Geoserver:
         geom_name : str
         geom_type : str
         workspace : str, optional
-
+        srid : int, optional
+        
         """
         if workspace is None:
             workspace = "default"
+        if srid is None:
+            srid = 4326
 
         layer_xml = """<featureType>
         <name>{0}</name>
@@ -853,7 +857,21 @@ class Geoserver:
         <name>{5}</name>
         </namespace>
         <title>{0}</title>
-        <srs>EPSG:4326</srs>
+        <srs>EPSG:{6}</srs>
+        <nativeBoundingBox>
+        <minx>-180</minx>
+        <maxx>180</maxx>
+        <miny>-90</miny>
+        <maxy>90</maxy>
+        <crs>EPSG:{6}</crs>
+        </nativeBoundingBox>
+        <latLongBoundingBox>
+        <minx>-180</minx>
+        <maxx>180</maxx>
+        <miny>-90</miny>
+        <maxy>90</maxy>
+        <crs>EPSG:{6}</crs>
+        </latLongBoundingBox>
         <metadata>
         <entry key="JDBC_VIRTUAL_TABLE">
         <virtualTable>
@@ -864,12 +882,12 @@ class Geoserver:
         <geometry>
         <name>{3}</name>
         <type>{4}</type>
-        <srid>4326</srid>
+        <srid>{6}</srid>
         </geometry>
         </virtualTable>
         </entry>
         </metadata>
-        </featureType>""".format(name, sql, key_column, geom_name, geom_type, workspace)
+        </featureType>""".format(name, sql, key_column, geom_name, geom_type, workspace, srid)
 
         url = "{0}/rest/workspaces/{1}/datastores/{2}/featuretypes".format(
             self.service_url, workspace, store_name)
