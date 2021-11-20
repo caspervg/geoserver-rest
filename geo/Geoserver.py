@@ -2,6 +2,7 @@ import os
 from typing import Optional
 
 import requests
+from xmltodict import unparse, parse
 
 from .Calculation_gdal import raster_value
 from .Style import catagorize_xml, classified_xml, coverage_style_xml, outline_only_xml
@@ -514,7 +515,8 @@ class Geoserver:
         https://docs.geoserver.org/master/en/user/services/wms/time.html
         """
 
-        url = '{0}/rest/workspaces/{1}/coveragestores/{2}/coverages/{2}'.format(self.service_url, workspace, store_name)
+        url = '{0}/rest/workspaces/{1}/coveragestores/{2}/coverages/{2}'.format(
+            self.service_url, workspace, store_name)
 
         headers = {
             "content-type": content_type
@@ -562,7 +564,27 @@ class Geoserver:
         pg_user: str = "postgres",
         pg_password: str = "admin",
         overwrite: bool = False,
-        expose_primary_keys: bool = False,
+
+        expose_primary_keys: str = "false",
+        description: Optional[str] = None,
+        evictor_run_periodicity: Optional[int] = 300,
+        max_open_prepared_statements: Optional[int] = 50,
+        encode_functions: Optional[str] = "false",
+        primary_key_metadata_table: Optional[str] = None,
+        batch_insert_size: Optional[int] = 1,
+        preparedstatements: Optional[str] = "false",
+        loose_bbox: Optional[str] = "true",
+        estimated_extends: Optional[str] = "true",
+        fetch_size: Optional[int] = 1000,
+        validate_connections: Optional[str] = "true",
+        support_on_the_fly_geometry_simplification: Optional[str] = "true",
+        connection_timeout: Optional[int] = 20,
+        create_database: Optional[str] = "false",
+        min_connections: Optional[int] = 1,
+        max_connections: Optional[int] = 10,
+        evictor_tests_per_run: Optional[int] = 3,
+        test_while_idle: Optional[str] = "true",
+        max_connection_idle_time: Optional[int] = 300
     ):
         """
         Create PostGIS store for connecting postgres with geoserver.
@@ -578,11 +600,32 @@ class Geoserver:
         pg_user : str
         pg_password : str
         overwrite : bool
-        expose_primary_keys: bool
+
+        expose_primary_keys: str
+        description : str, optional
+        evictor_run_periodicity : str
+        max_open_prepared_statements : int
+        encode_functions : str
+        primary_key_metadata_table : str
+        batch_insert_size : int
+        preparedstatements : str
+        loose_bbox : str
+        estimated_extends : str
+        fetch_size : int
+        validate_connections : str
+        support_on_the_fly_geometry_simplification : str
+        connection_timeout : int
+        create_database : str
+        min_connections : int
+        max_connections : int
+        evictor_tests_per_run : int
+        test_while_idle : str
+        max_connection_idle_time : int
+
 
         Notes
         -----
-        After creating feature store, you need to publish it.
+        After creating feature store, you need to publish it. See the layer publish guidline here: https://geoserver-rest.readthedocs.io/en/latest/how_to_use.html#creating-and-publishing-featurestores-and-featurestore-layers 
         """
 
         url = "{}/rest/workspaces/{}/datastores".format(self.service_url, workspace)
@@ -591,41 +634,48 @@ class Geoserver:
             'content-type': 'text/xml'
         }
 
-        # make the connection with postgis database
-        database_connection = (
-            "<dataStore>"
-            "<name>{0}</name>"
-            "<connectionParameters>"
-            "<host>{1}</host>"
-            "<port>{2}</port>"
-            "<database>{3}</database>"
-            "<schema>{4}</schema>"
-            "<user>{5}</user>"
-            "<passwd>{6}</passwd>"
-            "<dbtype>postgis</dbtype>"
-            "</connectionParameters>"
-            "</dataStore>".format(
-                store_name, host, port, db, schema, pg_user, pg_password
-            )
+        database_connection = ("""
+                <dataStore>
+                <name>{0}</name>
+                <description>{1}</description>
+                <connectionParameters>
+                <entry key="Expose primary keys">{2}</entry>
+                <entry key="host">{3}</entry>
+                <entry key="port">{4}</entry>
+                <entry key="user">{5}</entry>
+                <entry key="passwd">{6}</entry>
+                <entry key="dbtype">postgis</entry>
+                <entry key="schema">{7}</entry>
+                <entry key="database">{8}</entry>
+                <entry key="Evictor run periodicity">{9}</entry>
+                <entry key="Max open prepared statements">{10}</entry>
+                <entry key="encode functions">{11}</entry>
+                <entry key="Primary key metadata table">{12}</entry>
+                <entry key="Batch insert size">{13}</entry>
+                <entry key="preparedStatements">{14}</entry>
+                <entry key="Estimated extends">{15}</entry>
+                <entry key="fetch size">{16}</entry>
+                <entry key="validate connections">{17}</entry>
+                <entry key="Support on the fly geometry simplification">{18}</entry>
+                <entry key="Connection timeout">{19}</entry>
+                <entry key="create database">{20}</entry>
+                <entry key="min connections">{21}</entry>
+                <entry key="max connections">{22}</entry>
+                <entry key="Evictor tests per run">{23}</entry>
+                <entry key="Test while idle">{24}</entry>
+                <entry key="Max connection idle time">{25}</entry>
+                <entry key="Loose bbox">{26}</entry>
+                </connectionParameters>              
+                </dataStore>
+                """.format(
+            store_name, description, expose_primary_keys, host, port, pg_user, pg_password, schema, db,
+            evictor_run_periodicity, max_open_prepared_statements, encode_functions, primary_key_metadata_table,
+            batch_insert_size, preparedstatements, estimated_extends, fetch_size, validate_connections,
+            batch_insert_size, preparedstatements, estimated_extends, fetch_size, validate_connections,
+            batch_insert_size, preparedstatements, estimated_extends, fetch_size, validate_connections,
+            support_on_the_fly_geometry_simplification, connection_timeout, create_database, min_connections,
+            max_connections, evictor_tests_per_run, test_while_idle, max_connection_idle_time, loose_bbox
         )
-
-        if expose_primary_keys:
-            database_connection = (
-            "<dataStore>"
-            "<name>{0}</name>"
-            "<Expose primary keys>{7}</Expose primary keys>"
-            "<connectionParameters>"
-            "<host>{1}</host>"
-            "<port>{2}</port>"
-            "<database>{3}</database>"
-            "<schema>{4}</schema>"
-            "<user>{5}</user>"
-            "<passwd>{6}</passwd>"
-            "<dbtype>postgis</dbtype>"
-            "</connectionParameters>"
-            "</dataStore>".format(
-                store_name, host, port, db, schema, pg_user, pg_password, expose_primary_keys
-            )
         )
 
         r = None
@@ -667,8 +717,7 @@ class Geoserver:
         path : str
             Path to shapefile (.shp) file, GeoPackage (.gpkg) file, WFS url
             (e.g. http://localhost:8080/geoserver/wfs?request=GetCapabilities) or directory containing shapefiles.
-        workspace : str, optional
-            Default: "default".
+        workspace : str, optional default value = "default".
         overwrite : bool
 
         Notes
@@ -712,7 +761,8 @@ class Geoserver:
                 return "Data store created/updated successfully"
 
             else:
-                raise Exception("datastore can not be created. Status code: {}, {}".format(r.status_code, r.content))
+                raise Exception("datastore can not be created. Status code: {}, {}".format(
+                    r.status_code, r.content))
 
         except Exception as e:
             return "Error create_datastore: {}".format(e)
@@ -816,6 +866,51 @@ class Geoserver:
                 self.username, self.password), headers=headers)
             if r.status_code not in [200, 201]:
                 return '{}: Data can not be published! {}'.format(r.status_code, r.content)
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def edit_featuretype(self,
+                         store_name: str,
+                         workspace: Optional[str],
+                         pg_table: str,
+                         name: str,
+                         title: str
+                         ):
+        """
+
+        Parameters
+        ----------
+        store_name : str
+        workspace : str, optional
+        pg_table : str
+        name : str
+        title : str
+
+        Returns
+        -------
+
+        Notes
+        -----
+        """
+
+        if workspace is None:
+            workspace = "default"
+
+        url = "{}/rest/workspaces/{}/datastores/{}/featuretypes/{}.xml".format(
+            self.service_url, workspace, store_name, pg_table)
+
+        layer_xml = """<featureType>
+                    <name>{}</name>
+                    <title>{}</title>
+                    </featureType>""".format(name, title)
+        headers = {"content-type": "text/xml"}
+
+        try:
+            r = requests.put(url, data=layer_xml, auth=(
+                self.username, self.password), headers=headers)
+            if r.status_code not in [200, 201]:
+                return '{}: Data has not been edited! {}'.format(r.status_code, r.content)
 
         except Exception as e:
             return "Error: {}".format(e)
@@ -1338,7 +1433,8 @@ class Geoserver:
         try:
             payload = {"recurse": "true"}
             url = "{}/rest/workspaces/{}".format(self.service_url, workspace)
-            r = requests.delete(url, auth=(self.username, self.password), param=payload)
+            r = requests.delete(url, auth=(
+                self.username, self.password), params=payload)
 
             if r.status_code == 200:
                 return "Status code: {}, delete workspace".format(r.status_code)
@@ -1462,13 +1558,239 @@ class Geoserver:
             if workspace is None:
                 url = "{}/rest/styles/{}".format(self.service_url, style_name)
 
-            r = requests.delete(url, auth=(self.username, self.password), param=payload)
+            r = requests.delete(url, auth=(
+                self.username, self.password), params=payload)
 
             if r.status_code == 200:
                 return "Status code: {}, delete style".format(r.status_code)
 
             else:
                 raise Exception("Error: {} {}".format(r.status_code, r.content))
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def get_all_users(self, service=None):
+        """
+
+        Parameters
+        ----------
+        service: str, optional
+
+        Query all users in the provided user/group service, else default user/group service is queried
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "users/"
+        else:
+            url += "service/{}/users/".format(service)
+        try:
+            headers = {"accept": "application/xml"}
+            r = requests.get(
+                url, auth=(self.username, self.password), headers=headers
+            )
+
+            if r.status_code == 200:
+                return parse(r.content)
+            else:
+                raise Exception("Users could not be fetched")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def create_user(self, username: str, password: str, enabled=True, service=None):
+        """
+
+        Parameters
+        ----------
+        username : str
+        password: str
+        user_service : str, optional
+
+        Add a new user to the provided user/group service
+        If no user/group service is provided, then the users is added to default user service
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "users/"
+        else:
+            url += "service/{}/users/".format(service)
+        try:
+            data = "<user><userName>{}</userName><password>{}</password><enabled>{}</enabled></user>".format(username,
+                                                                                                             password, enabled)
+            headers = {"content-type": "text/xml", "accept": "application/json"}
+            r = requests.post(
+                url, data, auth=(self.username, self.password), headers=headers
+            )
+
+            if r.status_code == 201:
+                return "User created successfully"
+            else:
+                raise Exception("The user can not be created")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def modify_user(self, username: str, new_name=None, new_password=None,
+                    enable=None, service=None):
+        """
+
+        Parameters
+        ----------
+        username : str
+        new_name : str, optional
+        new_password : str, optional
+        enable : bool, optional
+        service : str, optional
+
+        Modifies a user in the provided user/group service
+        If no user/group service is provided, then the user in the default user service is modified
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "user/{}".format(username)
+        else:
+            url += "service/{}/user/{}".format(service, username)
+
+        modifications = dict()
+        if new_name is not None:
+            modifications["userName"] = new_name
+        if new_password is not None:
+            modifications["password"] = new_password
+        if enable is not None:
+            modifications["enabled"] = enable
+
+        try:
+            data = unparse({"user": modifications})
+            print(url, data)
+            headers = {"content-type": "text/xml", "accept": "application/json"}
+            r = requests.post(
+                url, data, auth=(self.username, self.password), headers=headers
+            )
+
+            if r.status_code == 200:
+                return "User modified successfully"
+            else:
+                raise Exception("The user can not be modified")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def delete_user(self, username: str, service=None):
+        """
+
+        Parameters
+        ----------
+        username : str
+        user_service : str, optional
+
+        Deletes user from the provided user/group service
+        If no user/group service is provided, then the users is deleted from default user service
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "user/{}".format(username)
+        else:
+            url += "service/{}/user/{}".format(service, username)
+
+        try:
+            headers = {"accept": "application/json"}
+            r = requests.delete(
+                url, auth=(self.username, self.password), headers=headers
+            )
+
+            if r.status_code == 200:
+                return "User deleted successfully"
+            else:
+                raise Exception("The user could not be deleted")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def get_all_usergroups(self, service=None):
+        """
+
+        Parameters
+        ----------
+        service : str, optional
+
+        Queries all the groups in the given user/group service
+        If no user/group service is provided, default user/group service is used
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "groups/"
+        else:
+            url += "service/{}/groups/".format(service)
+
+        try:
+            r = requests.get(
+                url, auth=(self.username, self.password)
+            )
+
+            if r.status_code == 200:
+                return parse(r.content)
+            else:
+                raise Exception("The groups could not be fetched")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def create_usergroup(self, group: str, service=None):
+        """
+
+        Parameters
+        ----------
+        group : str
+        service : str, optional
+
+        Add a new usergroup to the provided user/group service
+        If no user/group service is provided, then the usergroup is added to default user service
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "group/{}".format(group)
+        else:
+            url += "service/{}/group/{}".format(service, group)
+        try:
+            r = requests.post(
+                url, auth=(self.username, self.password)
+            )
+
+            if r.status_code == 201:
+                return "Group created successfully"
+            else:
+                raise Exception("The group can not be created")
+
+        except Exception as e:
+            return "Error: {}".format(e)
+
+    def delete_usergroup(self, group: str, service=None):
+        """
+
+        Parameters
+        ----------
+        group : str
+        service : str, optional
+
+        Deletes given usergroup from provided user/group service
+        If no user/group service is provided, then the usergroup deleted from default user service
+        """
+        url = "{}/rest/security/usergroup/".format(self.service_url)
+        if service is None:
+            url += "group/{}".format(group)
+        else:
+            url += "service/{}/group/{}".format(service, group)
+
+        try:
+            r = requests.delete(
+                url, auth=(self.username, self.password)
+            )
+
+            if r.status_code == 200:
+                return "Group deleted successfully"
+            else:
+                raise Exception("The group could not be deleted")
 
         except Exception as e:
             return "Error: {}".format(e)

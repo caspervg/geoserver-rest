@@ -3,7 +3,15 @@ Change Log
 
 ``Master branch``
 ^^^^^^^^^^^^^^^^^
-* ``create_datastore`` bug on Expose primary key fixed
+
+* Params for `delete_workspace` and `delete_style` changed to `{recursive: true}`
+* Added methods to use REST API for user/group service CRUD operations.
+
+
+``[V2.1.2 - 2021-10-14]``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+* ``create_featurestore`` bug on Expose primary key fixed close #56.
+* ``create_featurestore`` will now support all the options from geoserver.
 
 
 ``[V2.0.0 - 2021-08-14]``
