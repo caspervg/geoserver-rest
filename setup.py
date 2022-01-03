@@ -46,7 +46,7 @@ setup(
         'pygments',
         'requests',
         'seaborn',
-        'gdal',
+        'pygdal',
         'matplotlib',
         'xmltodict'
     ],
